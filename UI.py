@@ -9,9 +9,6 @@ from PyQt6.QtGui import QPixmap
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import Qt, QUrl, QTimer  
 
-
-
-
 class MyApp(QWidget):
     def __init__(self):
         super().__init__()
