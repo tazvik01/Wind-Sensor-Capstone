@@ -5,6 +5,8 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, 
     QComboBox, QLineEdit,
 )
+
+import serial 
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import Qt, QUrl, QTimer  
@@ -13,6 +15,9 @@ class MyApp(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("The Wind Sensor App")
+
+        self.serial_start = serial.Serial('COM8', 9600, timeout= 1)
+        
 
         main_layout = QHBoxLayout()
         self.setLayout(main_layout)
@@ -201,6 +206,27 @@ class MyApp(QWidget):
         now = datetime.now()
         current_time_str = now.strftime("%I:%M:%S %p")
         self.real_time_edit.setText(current_time_str)
+
+        line = self.serial_start.readline()
+
+        if line:
+            text = line.decode('utf-8', errors='replace').strip()
+            if 'Latitude' in text:
+                lat_index = text.find(":")
+                latitude = text[lat_index+1:]
+                print(latitude)
+            elif 'Longitude' in text:
+                long_index = text.find(":")
+                longitude = text[long_index+1:]
+                print(longitude)
+            elif 'Altitude(m)' in text:
+                alt_index = text.find(":")
+                altitude = text[alt_index+1:]
+                print(altitude)
+        else:
+            self.serial_start.close()
+
+
 
 
 def main():
