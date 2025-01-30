@@ -16,7 +16,7 @@ class MyApp(QWidget):
         super().__init__()
         self.setWindowTitle("The Wind Sensor App")
 
-        self.serial_start = serial.Serial('COM8', 9600, timeout= 1)
+        #self.serial_start = serial.Serial('COM8', 9600, timeout= 1)
         
 
         main_layout = QHBoxLayout()
@@ -77,7 +77,8 @@ class MyApp(QWidget):
             'speed_lbl': 'SPEED:',
             'direction_lbl': 'DIRECTION:',
             'modes_lbl': 'MODES:',
-            'health_lbl': 'HEALTH:'
+            'health_lbl': 'HEALTH:',
+            'altitude_lbl': 'ALTITUDE:', 
         }
 
         device_row = QHBoxLayout()
@@ -93,6 +94,9 @@ class MyApp(QWidget):
         real_time_row.addWidget(real_time_lbl)
         real_time_row.addWidget(self.real_time_edit)
         #self.real_time_edit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
+
+        altitude_row = QHBoxLayout()
+        altitude_row.setSpacing(20)
 
         time_row = QHBoxLayout()
         time_row.setSpacing(20)
@@ -128,6 +132,11 @@ class MyApp(QWidget):
         self.text_box_direcion.setFixedSize(200, 20)
         self.text_box_direcion.setPlaceholderText("ERROR")
 
+        self.text_box_altitude = QLineEdit()
+        self.text_box_altitude.setReadOnly(True)
+        self.text_box_altitude.setFixedSize(200, 20)
+        self.text_box_altitude.setPlaceholderText("ERROR")
+
         self.modes_combo = QComboBox()
         self.modes_combo.setFixedSize(200, 20)
         self.modes_combo.addItems(["Real Time", "Time Average"])
@@ -136,6 +145,11 @@ class MyApp(QWidget):
         self.text_box_health.setReadOnly(True)
         self.text_box_health.setFixedSize(200, 20)
         self.text_box_health.setPlaceholderText("ERROR")
+
+        self.text_box_altitude = QLineEdit()
+        self.text_box_altitude.setReadOnly(True)
+        self.text_box_altitude.setFixedSize(200, 20)
+        self.text_box_altitude.setPlaceholderText("ERROR")
 
         device_row.addWidget(device_lbl)
         device_row.addWidget(self.device_combo)
@@ -157,6 +171,10 @@ class MyApp(QWidget):
             elif val == 'HEALTH:':
                 health_row.addWidget(label)
                 health_row.addWidget(self.text_box_health)
+            elif val == 'ALTITUDE:':
+                altitude_row.addWidget(label)
+                altitude_row.addWidget(self.text_box_altitude)
+
 
         label_layout.addLayout(device_row)
         label_layout.addLayout(time_row)
@@ -164,6 +182,7 @@ class MyApp(QWidget):
         label_layout.addLayout(direction_row)
         label_layout.addLayout(modes_row)
         label_layout.addLayout(health_row)
+        label_layout.addLayout(altitude_row)
 
         time_layout.addLayout(real_time_row)
 
@@ -207,24 +226,24 @@ class MyApp(QWidget):
         current_time_str = now.strftime("%I:%M:%S %p")
         self.real_time_edit.setText(current_time_str)
 
-        line = self.serial_start.readline()
+        # line = self.serial_start.readline()
 
-        if line:
-            text = line.decode('utf-8', errors='replace').strip()
-            if 'Latitude' in text:
-                lat_index = text.find(":")
-                latitude = text[lat_index+1:]
-                print(latitude)
-            elif 'Longitude' in text:
-                long_index = text.find(":")
-                longitude = text[long_index+1:]
-                print(longitude)
-            elif 'Altitude(m)' in text:
-                alt_index = text.find(":")
-                altitude = text[alt_index+1:]
-                print(altitude)
-        else:
-            self.serial_start.close()
+        # if line:
+        #     text = line.decode('utf-8', errors='replace').strip()
+        #     if 'Latitude' in text:
+        #         lat_index = text.find(":")
+        #         latitude = text[lat_index+1:]
+        #         print(latitude)
+        #     elif 'Longitude' in text:
+        #         long_index = text.find(":")
+        #         longitude = text[long_index+1:]
+        #         print(longitude)
+        #     elif 'Altitude(m)' in text:
+        #         alt_index = text.find(":")
+        #         altitude = text[alt_index+1:]
+        #         print(altitude)
+        # else:
+        #     self.serial_start.close()
 
 
 
