@@ -1,5 +1,6 @@
 import sys
 from datetime import datetime
+import time
 
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, 
@@ -9,16 +10,100 @@ from PyQt6.QtWidgets import (
 import serial 
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWebEngineWidgets import QWebEngineView
-from PyQt6.QtCore import Qt, QUrl, QTimer  
+from PyQt6.QtCore import Qt, QUrl, QTimer 
+import os 
+
+
+class Datalogger(QWidget):
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        self.setWindowTitle("Data Logger")
+        self.setFixedWidth(550)
+        self.setFixedHeight(500)
+        self.setStyleSheet("QWidget { background-color: #f1eeee; color: black; } QComboBox { border: 1px solid black; }")
+
+        label_dict = {
+            'running_time_avg_lbl' : 'RUNNING TIME AVERAGE:',
+            'location_lbl' : 'LOCATION:',
+        }
+
+        button_layout = QVBoxLayout()
+        button_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
+        button_layout.setSpacing(150)
+
+        data_btn = QPushButton("DATA", self)
+        data_btn.setFixedSize(120,50)
+        data_btn.setFixedSize(120,50)
+        button_layout.addWidget(data_btn)
+
+        self.hoverStyleSheet = (
+            'QPushButton{background-color: #803dae;color:white;}'
+            'QPushButton:hover{background-color: #803dae;color:white;}'
+            'QPushButton:pressed{border: 5px solid rgb(135,206,250);}'
+            'QToolTip {background-color: black; color: white; border: black solid 1px;}'
+        )
+
+        label_layout = QVBoxLayout()
+        label_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
+        label_layout.setSpacing(0)
+
+        running_time_average_row = QHBoxLayout()
+        running_time_average_row.setSpacing(20)
+
+        location_row = QHBoxLayout()
+        location_row.setSpacing(100)
+
+        self.text_box_timeavg = QLineEdit()
+        self.text_box_timeavg.setReadOnly(True)
+        self.text_box_timeavg.setFixedSize(350, 20)
+        self.text_box_timeavg.setPlaceholderText("Error")
+
+        self.text_box_location = QLineEdit()
+        self.text_box_location.setReadOnly(True)
+        self.text_box_location.setFixedSize(350, 20)
+        self.text_box_location.setPlaceholderText("Error")
+
+        for key,val in label_dict.items():
+            label = QLabel(val)
+            if val == 'RUNNING TIME AVERAGE:':
+                running_time_average_row.addWidget(label)
+                running_time_average_row.addWidget(self.text_box_timeavg)
+                label_layout.addLayout(running_time_average_row)
+            elif val == 'LOCATION:':
+                location_row.addWidget(label)
+                location_row.addWidget(self.text_box_location)
+                label_layout.addLayout(location_row)
+
+        data_btn.setStyleSheet(self.hoverStyleSheet)
+        layout.addLayout(label_layout)
+        layout.addLayout(button_layout)
+        data_btn.clicked.connect(self.data_btn_functionality)
+
+    def data_btn_functionality(self):
+        path = "C:\\WindSensor_DataLogger"
+        path = os.path.realpath(path)
+        os.startfile(path)
+        
+
+        # while True:
+        #     i=0
+        #     workbook = xlswriter.Workbook(f'C:\\WindSensor_DataLogger\\{i}.xlsx')
+        #     i = i+1
+        #     time.sleep(60)
+
 
 class MyApp(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("The Wind Sensor App")
+        folder_path = "C:\\WindSensor_DataLogger"
+        os.mkdir(folder_path)
 
-        #self.serial_start = serial.Serial('COM8', 9600, timeout= 1)
+
+        self.serial_start = serial.Serial('COM9', 9600, timeout= 1)
         
-
         main_layout = QHBoxLayout()
         self.setLayout(main_layout)
 
@@ -37,11 +122,10 @@ class MyApp(QWidget):
         button_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
         button_layout.addSpacing(-50)
 
-        start_btn = QPushButton("START")
-        stop_btn = QPushButton("STOP")
-        more_btn = QPushButton("MORE")
+        start_btn = QPushButton("START", self)
+        stop_btn = QPushButton("STOP", self)
+        more_btn = QPushButton("MORE", self)
 
-        # Styling and sizes
         start_btn.setFixedSize(120, 50)
         stop_btn.setFixedSize(120, 50)
         more_btn.setFixedSize(120, 50)
@@ -54,7 +138,6 @@ class MyApp(QWidget):
         label_layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         label_layout.setSpacing(25)
 
-        # This layout will hold the "TIME OF DAY:" label and the actual real-time clock.
         time_layout = QVBoxLayout()
         time_layout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
 
@@ -93,7 +176,6 @@ class MyApp(QWidget):
         self.real_time_edit.setFixedSize(70, 20)
         real_time_row.addWidget(real_time_lbl)
         real_time_row.addWidget(self.real_time_edit)
-        #self.real_time_edit.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom)
 
         altitude_row = QHBoxLayout()
         altitude_row.setSpacing(20)
@@ -175,7 +257,6 @@ class MyApp(QWidget):
                 altitude_row.addWidget(label)
                 altitude_row.addWidget(self.text_box_altitude)
 
-
         label_layout.addLayout(device_row)
         label_layout.addLayout(time_row)
         label_layout.addLayout(speed_row)
@@ -221,38 +302,48 @@ class MyApp(QWidget):
         self.timer.timeout.connect(self.update_time_of_day)
         self.timer.start(1000) 
 
+        more_btn.clicked.connect(self.more_button_functionality)
+
+    def more_button_functionality(self):
+        self.data_logging_window = Datalogger()
+        self.data_logging_window.show()
+
     def update_time_of_day(self):
         now = datetime.now()
         current_time_str = now.strftime("%I:%M:%S %p")
         self.real_time_edit.setText(current_time_str)
 
-        # line = self.serial_start.readline()
-
-        # if line:
-        #     text = line.decode('utf-8', errors='replace').strip()
-        #     if 'Latitude' in text:
-        #         lat_index = text.find(":")
-        #         latitude = text[lat_index+1:]
-        #         print(latitude)
-        #     elif 'Longitude' in text:
-        #         long_index = text.find(":")
-        #         longitude = text[long_index+1:]
-        #         print(longitude)
-        #     elif 'Altitude(m)' in text:
-        #         alt_index = text.find(":")
-        #         altitude = text[alt_index+1:]
-        #         print(altitude)
-        # else:
-        #     self.serial_start.close()
-
-
-
+        line = self.serial_start.readline()
+        if line:
+            text = line.decode('utf-8', errors='replace').strip()
+            if 'Temperature' in text:
+                lat_index = text.find("=")
+                latitude = text[lat_index+1:]
+                self.text_box_speed.setText(latitude)
+                self.text_box_direcion.setText(latitude)
+            elif 'Pressure' in text:
+                long_index = text.find("=")
+                longitude = text[long_index+1:]
+                self.text_box_health.setText(longitude)
+            elif 'Altitude' in text:
+                alt_index = text.find("=")
+                altitude = text[alt_index+1:]
+                self.text_box_altitude.setText(altitude)
+            elif 'Humidity' in text:
+                humidity_index = text.find("=")
+                humidity = text[humidity_index+1:]
+                self.text_box_time.setText(humidity)
+            elif 'Humidity' in text:
+                humidity_index = text.find("=")
+                humidity = text[humidity_index+1:]
+                self.text_box_direcion.setText(humidity)
 
 def main():
     app = QApplication(sys.argv)
     window = MyApp()
     window.show()
     app.exec()
+    
 
 if __name__ == "__main__":
     main()
