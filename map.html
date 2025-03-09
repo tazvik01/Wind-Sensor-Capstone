@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        html, body, iframe {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            border: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <iframe
+        id="map_frame"
+        src="https://maps.google.com/maps?q=0,0&z=2&output=embed"
+        allowfullscreen>
+    </iframe>
+
+    <script>
+        function updateMap(lat, lng) {
+            const iframe = document.getElementById('map_frame');
+            iframe.src = `https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`;
+        }
+    </script>
+</body>
+</html>
+
+
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <style>
+        html, body, #map {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+    <!-- Google Maps JavaScript API (replace YOUR_API_KEY with a real API Key) -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBXZ7tJwum--OlSIAIttD6_8NvEWOm_f6U"></script>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script>
+        var map;
+        var markers = [];
+
+        function initMap() {
+            var center = {lat: 53.5461, lng: -113.4938}; // Default center (Edmonton)
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 13,
+                center: center
+            });
+        }
+
+        // Call this function from Python to update markers
+        function updateMarkers(locations) {
+            // Clear existing markers
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+
+            locations.forEach(loc => {
+                var marker = new google.maps.Marker({
+                    position: {lat: loc.lat, lng: loc.lng},
+                    map: map
+                });
+                markers.push(marker);
+            });
+
+            // Adjust map to show all markers
+            var bounds = new google.maps.LatLngBounds();
+            markers.forEach(marker => bounds.extend(marker.getPosition()));
+            map.fitBounds(bounds);
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+</html> -->

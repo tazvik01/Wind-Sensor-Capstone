@@ -12,6 +12,9 @@ from PyQt6.QtGui import QPixmap
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtCore import Qt, QUrl, QTimer 
 import os 
+import openpyxl
+from PyQt6.QtWebEngineCore import QWebEngineSettings
+import serial.tools.list_ports
 
 
 class Datalogger(QWidget):
@@ -85,7 +88,9 @@ class Datalogger(QWidget):
         path = "C:\\WindSensor_DataLogger"
         path = os.path.realpath(path)
         os.startfile(path)
+    
         
+
 
         # while True:
         #     i=0
@@ -97,26 +102,32 @@ class Datalogger(QWidget):
 class MyApp(QWidget):
     def __init__(self):
         super().__init__()
+        
         self.setWindowTitle("The Wind Sensor App")
-        folder_path = "C:\\WindSensor_DataLogger"
-        os.mkdir(folder_path)
+        now = datetime.now()
+        self.current_time_str = now.strftime("%I:%M:%S %p")
+        folder_path = f"C:\\WindSensor_DataLogger"
+        if not os.path.exists(folder_path):
+            os.mkdir(folder_path)
 
-
-        self.serial_start = serial.Serial('COM9', 9600, timeout= 1)
+        #self.serial_start = serial.Serial('COM9', 9600, timeout= 1)
         
         main_layout = QHBoxLayout()
         self.setLayout(main_layout)
 
         map_layout = QVBoxLayout()
         self.web_view = QWebEngineView()
-        self.web_view.load(QUrl("https://maps.google.com"))
+        self.web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
+        self.web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
+        map_file = os.path.join(os.path.dirname(__file__), "map.html")
+        self.web_view.load(QUrl.fromLocalFile(map_file))
         self.web_view.setFixedSize(450, 650)
         map_layout.addWidget(self.web_view)
 
         map_widget = QWidget()
         map_widget.setLayout(map_layout)
 
-        right_layout = QVBoxLayout()
+        self.right_layout = QVBoxLayout()
 
         button_layout = QVBoxLayout()
         button_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
@@ -141,19 +152,19 @@ class MyApp(QWidget):
         time_layout = QVBoxLayout()
         time_layout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
 
-        status_lbl = QHBoxLayout()
+        self.status_lbl = QHBoxLayout()
         status = QLabel('STATUS:')
 
-        icon_label = QLabel()
-        pixmap = QPixmap("green_processed.jpg")
-        smaller_pixmap = pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio,
+        self.icon_label = QLabel()
+        self.pixmap = QPixmap("red.png")
+        self.smaller_pixmap = self.pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio,
                                        Qt.TransformationMode.SmoothTransformation)
-        icon_label.setPixmap(smaller_pixmap)
+        self.icon_label.setPixmap(self.smaller_pixmap)
         status.setFixedSize(50, 10)
 
-        status_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
-        status_lbl.addWidget(status)
-        status_lbl.addWidget(icon_label)
+        self.status_lbl.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+        self.status_lbl.addWidget(status)
+        self.status_lbl.addWidget(self.icon_label)
 
         label_dict = {
             'Time_lbl': 'TIME:',
@@ -267,16 +278,18 @@ class MyApp(QWidget):
 
         time_layout.addLayout(real_time_row)
 
-        right_layout.addLayout(status_lbl)
-        right_layout.addLayout(button_layout)
-        right_layout.addLayout(label_layout)
-        right_layout.addLayout(time_layout)
+        self.right_layout.addLayout(self.status_lbl)
+        self.right_layout.addLayout(button_layout)
+        self.right_layout.addLayout(label_layout)
+        self.right_layout.addLayout(time_layout)
 
         right_widget = QWidget()
-        right_widget.setLayout(right_layout)
+        right_widget.setLayout(self.right_layout)
 
         main_layout.addWidget(map_widget)
         main_layout.addWidget(right_widget)
+
+        self.count = 4
 
         self.resize(800, 600)
 
@@ -295,48 +308,156 @@ class MyApp(QWidget):
             QComboBox { border: 1px solid black; }
         """)
 
-        right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.setSpacing(0)
+        self.right_layout.setContentsMargins(0, 0, 0, 0)
+        self.right_layout.setSpacing(0)
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_time_of_day)
         self.timer.start(1000) 
 
         more_btn.clicked.connect(self.more_button_functionality)
+        self.prevlatitude = None
+        self.prevlongitude = None
+        self.connection()
+
+    def update_google_map(self, latitude: float, longitude: float):
+        if (latitude, longitude) != (self.prevlatitude, self.prevlongitude):
+            js_code = f'updateMap({latitude}, {longitude});'
+            self.web_view.page().runJavaScript(js_code)
+
+            self.prevlatitude = latitude
+            self.prevlongitude = longitude
+
+    def find_serial_port(self):
+        ports = serial.tools.list_ports.comports()
+        target_vid = 4292  
+        target_pid = 60000 
+
+        for port in ports:
+            if port.vid == target_vid and port.pid == target_pid:
+                return port.device 
+
+        return None  
+
+    def start_serial_connection(self):
+        com_port = self.find_serial_port()
+        if com_port is not None:
+            try:
+                self.serial_start = serial.Serial(com_port, 9600, timeout=1)
+                print(f"Connected successfully to {com_port}")
+            except serial.SerialException as e:
+                print(f"Error connecting to {com_port}: {e}")
+        else:
+            print("Device not found. Please check the connection.")
+
+    
+
+        # self.real_time_edit.setText(self.current_time_str)
+        # self.current_time_str = datetime.now().strftime("%I:%M:%S %p")
+
+        # locations = [
+        # {'lat': 53.5461, 'lng': -113.4938},
+        # {'lat': 53.5400, 'lng': -113.5000},
+        # {'lat': 53.5500, 'lng': -113.4800}
+        # ]
+
+        # self.update_google_map(locations)
+    def connection(self):
+        comport = self.find_serial_port()
+        if comport:
+            self.serial_start = serial.Serial(comport, 9600, timeout=1)
+            self.pixmap = QPixmap("green_processed.jpg")
+            self.smaller_pixmap = self.pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio,
+                                       Qt.TransformationMode.SmoothTransformation)
+            self.icon_label.setPixmap(self.smaller_pixmap)
+        else:
+            print('did not work')
+            self.pixmap = QPixmap("red.png")
+            self.smaller_pixmap = self.pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio,
+                                       Qt.TransformationMode.SmoothTransformation)
+            self.icon_label.setPixmap(self.smaller_pixmap)
+
+
+
 
     def more_button_functionality(self):
         self.data_logging_window = Datalogger()
         self.data_logging_window.show()
 
     def update_time_of_day(self):
-        now = datetime.now()
-        current_time_str = now.strftime("%I:%M:%S %p")
-        self.real_time_edit.setText(current_time_str)
+        
+        self.real_time_edit.setText(self.current_time_str)
+        self.current_time_str = datetime.now().strftime("%I:%M:%S %p")
 
-        line = self.serial_start.readline()
-        if line:
-            text = line.decode('utf-8', errors='replace').strip()
-            if 'Temperature' in text:
-                lat_index = text.find("=")
-                latitude = text[lat_index+1:]
-                self.text_box_speed.setText(latitude)
-                self.text_box_direcion.setText(latitude)
-            elif 'Pressure' in text:
-                long_index = text.find("=")
-                longitude = text[long_index+1:]
-                self.text_box_health.setText(longitude)
-            elif 'Altitude' in text:
-                alt_index = text.find("=")
-                altitude = text[alt_index+1:]
-                self.text_box_altitude.setText(altitude)
-            elif 'Humidity' in text:
-                humidity_index = text.find("=")
-                humidity = text[humidity_index+1:]
-                self.text_box_time.setText(humidity)
-            elif 'Humidity' in text:
-                humidity_index = text.find("=")
-                humidity = text[humidity_index+1:]
-                self.text_box_direcion.setText(humidity)
+        comport = self.find_serial_port()
+        print(comport)
+        
+
+        if comport == None:
+            self.connection()
+            self.count = 0
+
+        else:
+            print('connected :)')
+            if self.count == 0:
+                self.pixmap = QPixmap("green_processed.jpg")
+                self.smaller_pixmap = self.pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio,
+                                        Qt.TransformationMode.SmoothTransformation)
+                self.icon_label.setPixmap(self.smaller_pixmap)
+                self.count = 1
+            else:
+
+                self.count = self.count + 1
+        
+        # if self.count == 1:
+        #     self.pixmap = QPixmap("green_processed.jpg")
+        #     self.smaller_pixmap = self.pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio,
+        #                                Qt.TransformationMode.SmoothTransformation)
+        #     self.icon_label.setPixmap(self.smaller_pixmap)
+        #     #self.connection()
+
+        
+
+        print(self.count)
+        
+
+
+   
+
+
+
+
+        lattitude = 48.85341
+        longitude = 2.3488
+
+        self.update_google_map(lattitude,longitude)
+            
+        
+
+        # line = self.serial_start.readline()
+        # if line:
+        #     text = line.decode('utf-8', errors='replace').strip()
+        #     if 'Temperature' in text:
+        #         lat_index = text.find("=")
+        #         latitude = text[lat_index+1:]
+        #         self.text_box_speed.setText(latitude)
+        #         self.text_box_direcion.setText(latitude)
+        #     elif 'Pressure' in text:
+        #         long_index = text.find("=")
+        #         longitude = text[long_index+1:]
+        #         self.text_box_health.setText(longitude)
+        #     elif 'Altitude' in text:
+        #         alt_index = text.find("=")
+        #         altitude = text[alt_index+1:]
+        #         self.text_box_altitude.setText(altitude)
+        #     elif 'Humidity' in text:
+        #         humidity_index = text.find("=")
+        #         humidity = text[humidity_index+1:]
+        #         self.text_box_time.setText(humidity)
+        #     elif 'Humidity' in text:
+        #         humidity_index = text.find("=")
+        #         humidity = text[humidity_index+1:]
+        #         self.text_box_direcion.setText(humidity)
 
 def main():
     app = QApplication(sys.argv)
