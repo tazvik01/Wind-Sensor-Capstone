@@ -133,16 +133,16 @@ class MyApp(QWidget):
         button_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
         button_layout.addSpacing(-50)
 
-        start_btn = QPushButton("START", self)
-        stop_btn = QPushButton("STOP", self)
+        self.start_btn = QPushButton("START", self)
+        self.stop_btn = QPushButton("STOP", self)
         more_btn = QPushButton("MORE", self)
 
-        start_btn.setFixedSize(120, 50)
-        stop_btn.setFixedSize(120, 50)
+        self.start_btn.setFixedSize(120, 50)
+        self.stop_btn.setFixedSize(120, 50)
         more_btn.setFixedSize(120, 50)
 
-        button_layout.addWidget(start_btn)
-        button_layout.addWidget(stop_btn)
+        button_layout.addWidget(self.start_btn)
+        button_layout.addWidget(self.stop_btn)
         button_layout.addWidget(more_btn)
 
         label_layout = QVBoxLayout()
@@ -301,8 +301,8 @@ class MyApp(QWidget):
         )
 
         more_btn.setStyleSheet(self.hoverStyleSheet)
-        stop_btn.setStyleSheet(self.hoverStyleSheet)
-        start_btn.setStyleSheet(self.hoverStyleSheet)
+        self.stop_btn.setStyleSheet(self.hoverStyleSheet)
+        self.start_btn.setStyleSheet(self.hoverStyleSheet)
         self.setStyleSheet("""
             QWidget { background-color: #f1eeee; color: black; }
             QComboBox { border: 1px solid black; }
@@ -319,6 +319,7 @@ class MyApp(QWidget):
         self.prevlatitude = None
         self.prevlongitude = None
         self.connection()
+        self.start_button_pressed = False
 
     def update_google_map(self, latitude: float, longitude: float):
         if (latitude, longitude) != (self.prevlatitude, self.prevlongitude):
@@ -327,6 +328,7 @@ class MyApp(QWidget):
 
             self.prevlatitude = latitude
             self.prevlongitude = longitude
+            
 
     def find_serial_port(self):
         ports = serial.tools.list_ports.comports()
@@ -383,6 +385,13 @@ class MyApp(QWidget):
     def more_button_functionality(self):
         self.data_logging_window = Datalogger()
         self.data_logging_window.show()
+    
+    def start_button_clicked(self):
+        self.start_button_pressed = True
+        
+    def stop_button_clicked(self):
+        self.start_button_pressed = False
+        self.stop_button_pressed = True
 
     def update_time_of_day(self):
         
@@ -419,45 +428,43 @@ class MyApp(QWidget):
         
 
         print(self.count)
-        
-
-
-   
-
-
-
 
         lattitude = 48.85341
         longitude = 2.3488
 
         self.update_google_map(lattitude,longitude)
-            
-        
 
-        # line = self.serial_start.readline()
-        # if line:
-        #     text = line.decode('utf-8', errors='replace').strip()
-        #     if 'Temperature' in text:
-        #         lat_index = text.find("=")
-        #         latitude = text[lat_index+1:]
-        #         self.text_box_speed.setText(latitude)
-        #         self.text_box_direcion.setText(latitude)
-        #     elif 'Pressure' in text:
-        #         long_index = text.find("=")
-        #         longitude = text[long_index+1:]
-        #         self.text_box_health.setText(longitude)
-        #     elif 'Altitude' in text:
-        #         alt_index = text.find("=")
-        #         altitude = text[alt_index+1:]
-        #         self.text_box_altitude.setText(altitude)
-        #     elif 'Humidity' in text:
-        #         humidity_index = text.find("=")
-        #         humidity = text[humidity_index+1:]
-        #         self.text_box_time.setText(humidity)
-        #     elif 'Humidity' in text:
-        #         humidity_index = text.find("=")
-        #         humidity = text[humidity_index+1:]
-        #         self.text_box_direcion.setText(humidity)
+    
+            
+        self.start_btn.clicked.connect(self.start_button_clicked)
+        self.stop_btn.clicked.connect(self.stop_button_clicked)
+    
+
+        if self.start_button_pressed:
+            line = self.serial_start.readline()
+            if line:
+                text = line.decode('utf-8', errors='replace').strip()
+                if 'Temperature' in text:
+                    lat_index = text.find("=")
+                    latitude = text[lat_index+1:]
+                    self.text_box_speed.setText(latitude)
+                    self.text_box_direcion.setText(latitude)
+                elif 'Pressure' in text:
+                    long_index = text.find("=")
+                    longitude = text[long_index+1:]
+                    self.text_box_health.setText(longitude)
+                elif 'Altitude' in text:
+                    alt_index = text.find("=")
+                    altitude = text[alt_index+1:]
+                    self.text_box_altitude.setText(altitude)
+                elif 'Humidity' in text:
+                    humidity_index = text.find("=")
+                    humidity = text[humidity_index+1:]
+                    self.text_box_time.setText(humidity)
+                elif 'Humidity' in text:
+                    humidity_index = text.find("=")
+                    humidity = text[humidity_index+1:]
+                    self.text_box_direcion.setText(humidity)
 
 def main():
     app = QApplication(sys.argv)
