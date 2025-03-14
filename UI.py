@@ -1,5 +1,6 @@
 import sys
 from datetime import datetime
+import math
 import time
 
 from PyQt6.QtWidgets import (
@@ -15,6 +16,12 @@ import os
 import openpyxl
 from PyQt6.QtWebEngineCore import QWebEngineSettings
 import serial.tools.list_ports
+
+from PyQt6.QtGui import  QPainter, QPen
+from PyQt6.QtCore import QPointF, QRectF
+import random
+
+
 
 
 class Datalogger(QWidget):
@@ -97,11 +104,69 @@ class Datalogger(QWidget):
         #     workbook = xlswriter.Workbook(f'C:\\WindSensor_DataLogger\\{i}.xlsx')
         #     i = i+1
         #     time.sleep(60)
+class CompassWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.direction = 64.5
+        self.setFixedSize(100, 100)
+
+    def direction_update(self, angle):
+        self.direction = angle
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        rect = self.rect()
+        center = QPointF(rect.center())
+        radius = min(self.width(), self.height()) / 2 - 20
+
+        pen = QPen(Qt.GlobalColor.black, 2)
+        painter.setPen(pen)
+        painter.drawEllipse(center, radius, radius)
+
+        angle = self.direction 
+        needle_length = radius
+        end_x = center.x() + needle_length * math.cos(math.radians(angle))
+        end_y = center.y() + needle_length * math.sin(math.radians(angle))
+        needle_end = QPointF(end_x, end_y)
+
+        pen = QPen(Qt.GlobalColor.red, 3)
+        painter.setPen(pen)
+        painter.drawLine(center, needle_end)
+
+       
+        painter.setPen(QPen(Qt.GlobalColor.black, 1))
+        painter.drawEllipse(center, 3, 3)
+
+        offset = 5
+
+        # N
+        rectN = QRectF(center.x() - radius, center.y() - radius - 20 - offset,
+                       2*radius, 20)
+        painter.drawText(rectN, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom, "N")
+
+        # S
+        rectS = QRectF(center.x() - radius, center.y() + radius + offset,
+                       2*radius, 20)
+        painter.drawText(rectS, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop, "S")
+
+        # E
+        rectE = QRectF(center.x() + radius + offset, center.y() - radius,
+                       20, 2*radius)
+        painter.drawText(rectE, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, "E")
+
+        # W
+        rectW = QRectF(center.x() - radius - 20 - offset, center.y() - radius,
+                       20, 2*radius)
+        painter.drawText(rectW, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, "W")
 
 
 class MyApp(QWidget):
     def __init__(self):
         super().__init__()
+        self.compass_widget = CompassWidget()
+        
         
         self.setWindowTitle("The Wind Sensor App")
         now = datetime.now()
@@ -114,6 +179,14 @@ class MyApp(QWidget):
         
         main_layout = QHBoxLayout()
         self.setLayout(main_layout)
+
+        compass_layout = QVBoxLayout()
+    
+
+        compass_layout.addWidget(self.compass_widget)
+        compass_layout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignLeft)
+
+        
 
         map_layout = QVBoxLayout()
         self.web_view = QWebEngineView()
@@ -131,7 +204,7 @@ class MyApp(QWidget):
 
         button_layout = QVBoxLayout()
         button_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-        button_layout.addSpacing(-50)
+        button_layout.addSpacing(5)
 
         self.start_btn = QPushButton("START", self)
         self.stop_btn = QPushButton("STOP", self)
@@ -181,6 +254,7 @@ class MyApp(QWidget):
 
         real_time_row = QHBoxLayout()
         real_time_lbl = QLabel("TIME OF DAY:")
+
         real_time_lbl.setFixedSize(80, 20)
 
         self.real_time_edit = QLabel()
@@ -276,18 +350,25 @@ class MyApp(QWidget):
         label_layout.addLayout(health_row)
         label_layout.addLayout(altitude_row)
 
+        # label_layout.addSpacing(-15)
+        label_layout.setSpacing(25)
+
         time_layout.addLayout(real_time_row)
+        time_layout.addSpacing(-60)
 
         self.right_layout.addLayout(self.status_lbl)
         self.right_layout.addLayout(button_layout)
+        self.right_layout.addSpacing(20)
         self.right_layout.addLayout(label_layout)
         self.right_layout.addLayout(time_layout)
+        self.right_layout.addLayout(compass_layout)
 
         right_widget = QWidget()
         right_widget.setLayout(self.right_layout)
 
         main_layout.addWidget(map_widget)
         main_layout.addWidget(right_widget)
+    
 
         self.count = 4
 
@@ -320,6 +401,7 @@ class MyApp(QWidget):
         self.prevlongitude = None
         self.connection()
         self.start_button_pressed = False
+        
 
     def update_google_map(self, latitude: float, longitude: float):
         if (latitude, longitude) != (self.prevlatitude, self.prevlongitude):
@@ -346,7 +428,7 @@ class MyApp(QWidget):
         if com_port is not None:
             try:
                 self.serial_start = serial.Serial(com_port, 9600, timeout=1)
-                print(f"Connected successfully to {com_port}")
+                # print(f"Connected successfully to {com_port}")
             except serial.SerialException as e:
                 print(f"Error connecting to {com_port}: {e}")
         else:
@@ -380,8 +462,6 @@ class MyApp(QWidget):
             self.icon_label.setPixmap(self.smaller_pixmap)
 
 
-
-
     def more_button_functionality(self):
         self.data_logging_window = Datalogger()
         self.data_logging_window.show()
@@ -397,17 +477,49 @@ class MyApp(QWidget):
         
         self.real_time_edit.setText(self.current_time_str)
         self.current_time_str = datetime.now().strftime("%I:%M:%S %p")
+        
+
+        if self.start_button_pressed:
+            line = self.serial_start.readline()
+            print(line)
+            # if line:
+            #     print(line)
+            #     text = line.decode('utf-8', errors='replace').strip()
+            #     if 'Wind Speed' in text:
+            #         lat_index = text.find(":")
+            #         latitude = text[lat_index+1:]
+            #         self.text_box_speed.setText(latitude)
+            #     elif 'Longitude' in text:
+            #         latifinal_index = text.find(":")
+            #         plus_index = text.find("+")
+            #         dollar_index = text.find("$")
+            #         latitude_final = text[latifinal_index+1:plus_index-1]
+            #         longitude_final = text[dollar_index+1:]
+            #         self.update_google_map(float(latitude_final),float(longitude_final))    
+            #     elif 'Altitude' in text:
+            #         alt_index = text.find(":")
+            #         alt = text[alt_index+1:]
+            #         self.text_box_altitude.setText(alt)
+            #     elif 'Humidity' in text:
+            #         humidity_index = text.find("=")
+            #         humidity = text[humidity_index+1:]
+            #         self.text_box_time.setText(humidity)
+            #     elif 'Wind Angle' in text:
+            #         print(text)
+            #         humidity_index = text.find(":")
+            #         humidity = text[humidity_index+1:]
+            #         self.compass_widget.direction_update(float(humidity))
+            #         self.text_box_direcion.setText(f'{humidity}°')
 
         comport = self.find_serial_port()
-        print(comport)
+        # print(comport)
         
 
         if comport == None:
             self.connection()
             self.count = 0
-
         else:
-            print('connected :)')
+            # print('connected :)')
             if self.count == 0:
                 self.pixmap = QPixmap("green_processed.jpg")
                 self.smaller_pixmap = self.pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio,
@@ -424,47 +536,20 @@ class MyApp(QWidget):
         #                                Qt.TransformationMode.SmoothTransformation)
         #     self.icon_label.setPixmap(self.smaller_pixmap)
         #     #self.connection()
-
-        
-
-        print(self.count)
-
-        lattitude = 48.85341
-        longitude = 2.3488
-
-        self.update_google_map(lattitude,longitude)
-
     
             
         self.start_btn.clicked.connect(self.start_button_clicked)
         self.stop_btn.clicked.connect(self.stop_button_clicked)
     
 
-        if self.start_button_pressed:
-            line = self.serial_start.readline()
-            if line:
-                text = line.decode('utf-8', errors='replace').strip()
-                if 'Temperature' in text:
-                    lat_index = text.find("=")
-                    latitude = text[lat_index+1:]
-                    self.text_box_speed.setText(latitude)
-                    self.text_box_direcion.setText(latitude)
-                elif 'Pressure' in text:
-                    long_index = text.find("=")
-                    longitude = text[long_index+1:]
-                    self.text_box_health.setText(longitude)
-                elif 'Altitude' in text:
-                    alt_index = text.find("=")
-                    altitude = text[alt_index+1:]
-                    self.text_box_altitude.setText(altitude)
-                elif 'Humidity' in text:
-                    humidity_index = text.find("=")
-                    humidity = text[humidity_index+1:]
-                    self.text_box_time.setText(humidity)
-                elif 'Humidity' in text:
-                    humidity_index = text.find("=")
-                    humidity = text[humidity_index+1:]
-                    self.text_box_direcion.setText(humidity)
+
+       
+                    
+        
+                
+
+                    
+
 
 def main():
     app = QApplication(sys.argv)

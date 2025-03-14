@@ -1,4 +1,3 @@
-self.setStyleSheet("""
-            QWidget { background-color: #f1eeee; color: black; }
-            QComboBox { border: 1px solid black; }
-        """)
+
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtWebEngineWidgets import QWebEngineView
