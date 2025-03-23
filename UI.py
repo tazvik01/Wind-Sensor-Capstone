@@ -65,25 +65,25 @@ class Datalogger(QWidget):
         location_row = QHBoxLayout()
         location_row.setSpacing(100)
 
-        self.text_box_timeavg = QLineEdit()
-        self.text_box_timeavg.setReadOnly(True)
-        self.text_box_timeavg.setFixedSize(350, 20)
-        self.text_box_timeavg.setPlaceholderText("Error")
+        self.last_line_box_timeavg = QLineEdit()
+        self.last_line_box_timeavg.setReadOnly(True)
+        self.last_line_box_timeavg.setFixedSize(350, 20)
+        self.last_line_box_timeavg.setPlaceholderText("Error")
 
-        self.text_box_location = QLineEdit()
-        self.text_box_location.setReadOnly(True)
-        self.text_box_location.setFixedSize(350, 20)
-        self.text_box_location.setPlaceholderText("Error")
+        self.last_line_box_location = QLineEdit()
+        self.last_line_box_location.setReadOnly(True)
+        self.last_line_box_location.setFixedSize(350, 20)
+        self.last_line_box_location.setPlaceholderText("Error")
 
         for key,val in label_dict.items():
             label = QLabel(val)
             if val == 'RUNNING TIME AVERAGE:':
                 running_time_average_row.addWidget(label)
-                running_time_average_row.addWidget(self.text_box_timeavg)
+                running_time_average_row.addWidget(self.last_line_box_timeavg)
                 label_layout.addLayout(running_time_average_row)
             elif val == 'LOCATION:':
                 location_row.addWidget(label)
-                location_row.addWidget(self.text_box_location)
+                location_row.addWidget(self.last_line_box_location)
                 label_layout.addLayout(location_row)
 
         data_btn.setStyleSheet(self.hoverStyleSheet)
@@ -125,7 +125,8 @@ class CompassWidget(QWidget):
         painter.setPen(pen)
         painter.drawEllipse(center, radius, radius)
 
-        angle = self.direction 
+        angle = self.direction
+        angle = angle +270 
         needle_length = radius
         end_x = center.x() + needle_length * math.cos(math.radians(angle))
         end_y = center.y() + needle_length * math.sin(math.radians(angle))
@@ -143,23 +144,24 @@ class CompassWidget(QWidget):
 
         # N
         rectN = QRectF(center.x() - radius, center.y() - radius - 20 - offset,
-                       2*radius, 20)
+                    2 * radius, 20)
         painter.drawText(rectN, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom, "N")
 
         # S
         rectS = QRectF(center.x() - radius, center.y() + radius + offset,
-                       2*radius, 20)
+                    2 * radius, 20)
         painter.drawText(rectS, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop, "S")
 
         # E
         rectE = QRectF(center.x() + radius + offset, center.y() - radius,
-                       20, 2*radius)
+                    20, 2 * radius)
         painter.drawText(rectE, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, "E")
 
         # W
         rectW = QRectF(center.x() - radius - 20 - offset, center.y() - radius,
-                       20, 2*radius)
+                    20, 2 * radius)
         painter.drawText(rectW, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, "W")
+
 
 
 class MyApp(QWidget):
@@ -284,39 +286,39 @@ class MyApp(QWidget):
         self.device_combo.setFixedSize(200, 20)
         self.device_combo.addItems(["Device 1", "Device 2", "Device 3"])
 
-        self.text_box_time = QLineEdit()
-        self.text_box_time.setReadOnly(True)
-        self.text_box_time.setFixedSize(200, 20)
-        self.text_box_time.setPlaceholderText("ERROR")
+        self.last_line_box_time = QLineEdit()
+        self.last_line_box_time.setReadOnly(True)
+        self.last_line_box_time.setFixedSize(200, 20)
+        self.last_line_box_time.setPlaceholderText("ERROR")
 
-        self.text_box_speed = QLineEdit()
-        self.text_box_speed.setReadOnly(True)
-        self.text_box_speed.setFixedSize(200, 20)
-        self.text_box_speed.setPlaceholderText("ERROR")
+        self.last_line_box_speed = QLineEdit()
+        self.last_line_box_speed.setReadOnly(True)
+        self.last_line_box_speed.setFixedSize(200, 20)
+        self.last_line_box_speed.setPlaceholderText("ERROR")
 
-        self.text_box_direcion = QLineEdit()
-        self.text_box_direcion.setReadOnly(True)
-        self.text_box_direcion.setFixedSize(200, 20)
-        self.text_box_direcion.setPlaceholderText("ERROR")
+        self.last_line_box_direcion = QLineEdit()
+        self.last_line_box_direcion.setReadOnly(True)
+        self.last_line_box_direcion.setFixedSize(200, 20)
+        self.last_line_box_direcion.setPlaceholderText("ERROR")
 
-        self.text_box_altitude = QLineEdit()
-        self.text_box_altitude.setReadOnly(True)
-        self.text_box_altitude.setFixedSize(200, 20)
-        self.text_box_altitude.setPlaceholderText("ERROR")
+        self.last_line_box_altitude = QLineEdit()
+        self.last_line_box_altitude.setReadOnly(True)
+        self.last_line_box_altitude.setFixedSize(200, 20)
+        self.last_line_box_altitude.setPlaceholderText("ERROR")
 
         self.modes_combo = QComboBox()
         self.modes_combo.setFixedSize(200, 20)
         self.modes_combo.addItems(["Real Time", "Time Average"])
 
-        self.text_box_health = QLineEdit()
-        self.text_box_health.setReadOnly(True)
-        self.text_box_health.setFixedSize(200, 20)
-        self.text_box_health.setPlaceholderText("ERROR")
+        self.last_line_box_health = QLineEdit()
+        self.last_line_box_health.setReadOnly(True)
+        self.last_line_box_health.setFixedSize(200, 20)
+        self.last_line_box_health.setPlaceholderText("ERROR")
 
-        self.text_box_altitude = QLineEdit()
-        self.text_box_altitude.setReadOnly(True)
-        self.text_box_altitude.setFixedSize(200, 20)
-        self.text_box_altitude.setPlaceholderText("ERROR")
+        self.last_line_box_altitude = QLineEdit()
+        self.last_line_box_altitude.setReadOnly(True)
+        self.last_line_box_altitude.setFixedSize(200, 20)
+        self.last_line_box_altitude.setPlaceholderText("ERROR")
 
         device_row.addWidget(device_lbl)
         device_row.addWidget(self.device_combo)
@@ -325,22 +327,22 @@ class MyApp(QWidget):
             label = QLabel(val)
             if val == 'TIME:':
                 time_row.addWidget(label)
-                time_row.addWidget(self.text_box_time)
+                time_row.addWidget(self.last_line_box_time)
             elif val == 'SPEED:':
                 speed_row.addWidget(label)
-                speed_row.addWidget(self.text_box_speed)
+                speed_row.addWidget(self.last_line_box_speed)
             elif val == "DIRECTION:":
                 direction_row.addWidget(label)
-                direction_row.addWidget(self.text_box_direcion)
+                direction_row.addWidget(self.last_line_box_direcion)
             elif val == "MODES:":
                 modes_row.addWidget(label)
                 modes_row.addWidget(self.modes_combo)
             elif val == 'HEALTH:':
                 health_row.addWidget(label)
-                health_row.addWidget(self.text_box_health)
+                health_row.addWidget(self.last_line_box_health)
             elif val == 'ALTITUDE:':
                 altitude_row.addWidget(label)
-                altitude_row.addWidget(self.text_box_altitude)
+                altitude_row.addWidget(self.last_line_box_altitude)
 
         label_layout.addLayout(device_row)
         label_layout.addLayout(time_row)
@@ -477,41 +479,64 @@ class MyApp(QWidget):
         
         self.real_time_edit.setText(self.current_time_str)
         self.current_time_str = datetime.now().strftime("%I:%M:%S %p")
-        
+        comport = self.find_serial_port()
+
 
         if self.start_button_pressed:
-            line = self.serial_start.readline()
-            print(line)
-            # if line:
-            #     print(line)
-            #     text = line.decode('utf-8', errors='replace').strip()
-            #     if 'Wind Speed' in text:
-            #         lat_index = text.find(":")
-            #         latitude = text[lat_index+1:]
-            #         self.text_box_speed.setText(latitude)
-            #     elif 'Longitude' in text:
-            #         latifinal_index = text.find(":")
-            #         plus_index = text.find("+")
-            #         dollar_index = text.find("$")
-            #         latitude_final = text[latifinal_index+1:plus_index-1]
-            #         longitude_final = text[dollar_index+1:]
-            #         self.update_google_map(float(latitude_final),float(longitude_final))    
-            #     elif 'Altitude' in text:
-            #         alt_index = text.find(":")
-            #         alt = text[alt_index+1:]
-            #         self.text_box_altitude.setText(alt)
-            #     elif 'Humidity' in text:
-            #         humidity_index = text.find("=")
-            #         humidity = text[humidity_index+1:]
-            #         self.text_box_time.setText(humidity)
-            #     elif 'Wind Angle' in text:
-            #         print(text)
-            #         humidity_index = text.find(":")
-            #         humidity = text[humidity_index+1:]
-            #         self.compass_widget.direction_update(float(humidity))
-            #         self.text_box_direcion.setText(f'{humidity}°')
+            print('started')
+            last_line = None
 
-        comport = self.find_serial_port()
+            while self.serial_start.in_waiting > 0:
+                temp_line = self.serial_start.readline().decode('utf-8', errors='replace').strip()
+                if temp_line:
+                    last_line = temp_line
+            
+            print(last_line)
+        
+            if last_line:
+                if 'Message:' in last_line:
+                    lat_index = last_line.find("Lat")
+                    lon_index = last_line.find("Lon")
+                    alt_index = last_line.find("Alt")
+                    angle_index = last_line.find("WindAngle")
+                    Windspeed_index = last_line.find("WindSpeed")
+
+
+                    wind_angle = last_line[angle_index+10:Windspeed_index-1]
+                    wind_speed = last_line[Windspeed_index+10:]
+                    
+
+
+                    self.last_line_box_speed.setText(wind_speed)
+                    
+                    self.last_line_box_direcion.setText(f'{wind_angle}°')
+                    self.compass_widget.direction_update(float(wind_angle.strip()))
+                    #self.update_google_map(float(latitude_final),float(longitude_final))
+                    
+                    
+                # elif 'Longitude' in last_line:
+                #     latifinal_index = last_line.find(":")
+                #     plus_index = last_line.find("+")
+                #     dollar_index = last_line.find("$")
+                #     latitude_final = last_line[latifinal_index+1:plus_index-1]
+                #     longitude_final = last_line[dollar_index+1:]
+                #     self.update_google_map(float(latitude_final),float(longitude_final))    
+                # elif 'Altitude' in last_line:
+                #     alt_index = last_line.find(":")
+                #     alt = last_line[alt_index+1:]
+                #     self.last_line_box_altitude.setText(alt)
+                # elif 'Humidity' in last_line:
+                #     humidity_index = last_line.find("=")
+                #     humidity = last_line[humidity_index+1:]
+                #     self.last_line_box_time.setText(humidity)
+                # elif 'Wind Angle' in last_line:
+                #     print(last_line)
+                #     humidity_index = last_line.find(":")
+                #     humidity = last_line[humidity_index+1:]
+                #     self.compass_widget.direction_update(float(humidity))
+                #     self.last_line_box_direcion.setText(f'{humidity}°')
+
+        
         # print(comport)
         
 
@@ -536,20 +561,13 @@ class MyApp(QWidget):
         #                                Qt.TransformationMode.SmoothTransformation)
         #     self.icon_label.setPixmap(self.smaller_pixmap)
         #     #self.connection()
-    
-            
+
         self.start_btn.clicked.connect(self.start_button_clicked)
         self.stop_btn.clicked.connect(self.stop_button_clicked)
     
-
-
-       
-                    
+            
         
-                
-
-                    
-
+    
 
 def main():
     app = QApplication(sys.argv)
