@@ -65,13 +65,13 @@ void setup() {
     while (1);
   }
 
-  // If you want to receive data, enable:
+  
   // LoRa.onReceive(onReceive);
   // LoRa.receive();
 
   Serial.println("LoRa init succeeded.");
 
-  // BME280 init (uncomment if you’re actually using BME280)
+ 
   // if (!bme.begin(0x77)) {
   //   Serial.println("Could not find BME280 sensor!");
   //   while (1);

@@ -2,6 +2,8 @@ import sys
 from datetime import datetime
 import math
 import time
+import threading
+from openpyxl import Workbook
 
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, 
@@ -33,11 +35,14 @@ class Datalogger(QWidget):
         self.setFixedWidth(550)
         self.setFixedHeight(500)
         self.setStyleSheet("QWidget { background-color: #f1eeee; color: black; } QComboBox { border: 1px solid black; }")
+    
 
         label_dict = {
             'running_time_avg_lbl' : 'RUNNING TIME AVERAGE:',
             'location_lbl' : 'LOCATION:',
         }
+
+
 
         button_layout = QVBoxLayout()
         button_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
@@ -96,14 +101,6 @@ class Datalogger(QWidget):
         path = os.path.realpath(path)
         os.startfile(path)
     
-        
-
-
-        # while True:
-        #     i=0
-        #     workbook = xlswriter.Workbook(f'C:\\WindSensor_DataLogger\\{i}.xlsx')
-        #     i = i+1
-        #     time.sleep(60)
 class CompassWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -168,12 +165,18 @@ class MyApp(QWidget):
     def __init__(self):
         super().__init__()
         self.compass_widget = CompassWidget()
-        
+        self.data_logger = Datalogger()
+        self.running_speed_average_one = []
+        self.running_speed_average_two = []
         
         self.setWindowTitle("The Wind Sensor App")
         now = datetime.now()
         self.current_time_str = now.strftime("%I:%M:%S %p")
+        self.start_timer = False
+        self.counter = 1
         folder_path = f"C:\\WindSensor_DataLogger"
+        self.workbook_count = 0
+        self.selected_text = self.device_combo.currentText()
         if not os.path.exists(folder_path):
             os.mkdir(folder_path)
 
@@ -183,12 +186,8 @@ class MyApp(QWidget):
         self.setLayout(main_layout)
 
         compass_layout = QVBoxLayout()
-    
-
         compass_layout.addWidget(self.compass_widget)
         compass_layout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignLeft)
-
-        
 
         map_layout = QVBoxLayout()
         self.web_view = QWebEngineView()
@@ -284,7 +283,7 @@ class MyApp(QWidget):
 
         self.device_combo = QComboBox()
         self.device_combo.setFixedSize(200, 20)
-        self.device_combo.addItems(["Device 1", "Device 2", "Device 3"])
+        self.device_combo.addItems(["Device 1", "Device 2"])
 
         self.last_line_box_time = QLineEdit()
         self.last_line_box_time.setReadOnly(True)
@@ -334,9 +333,9 @@ class MyApp(QWidget):
             elif val == "DIRECTION:":
                 direction_row.addWidget(label)
                 direction_row.addWidget(self.last_line_box_direcion)
-            elif val == "MODES:":
-                modes_row.addWidget(label)
-                modes_row.addWidget(self.modes_combo)
+            # elif val == "MODES:":
+            #     modes_row.addWidget(label)
+            #     modes_row.addWidget(self.modes_combo)
             elif val == 'HEALTH:':
                 health_row.addWidget(label)
                 health_row.addWidget(self.last_line_box_health)
@@ -403,6 +402,9 @@ class MyApp(QWidget):
         self.prevlongitude = None
         self.connection()
         self.start_button_pressed = False
+        self.stop_button_pressed = False
+        self.start_time = None
+        self.elapsed_time = 0
         
 
     def update_google_map(self, latitude: float, longitude: float):
@@ -424,6 +426,12 @@ class MyApp(QWidget):
                 return port.device 
 
         return None  
+    
+    def data_logger_excel(self):
+        self.workbook = Workbook()
+        self.ws_device = self.workbook.active
+        self.ws_device.title = "Data"
+        self.ws_device.append(["Wind Angle1", "Wind Speed1", "Altitude1", "longitude1", "latitude1", "Wind Angle2", "Wind Speed2", "Altitude2", "longitude2", "latitude2" ])
 
     def start_serial_connection(self):
         com_port = self.find_serial_port()
@@ -436,18 +444,15 @@ class MyApp(QWidget):
         else:
             print("Device not found. Please check the connection.")
 
-    
+    def running_speed_average(self):
+        if len(self.running_speed_average_one) >= 10:
+            self.average_one= sum(self.running_speed_average_one)/len(self.running_speed_average_one)
+            self.running_speed_average_one = []
+        elif len(self.running_speed_average_one) >= 10:
+            self.average_two= sum(self.running_speed_average_two)/len(self.running_speed_average_two)
+            self.running_speed_average_two = []
 
-        # self.real_time_edit.setText(self.current_time_str)
-        # self.current_time_str = datetime.now().strftime("%I:%M:%S %p")
 
-        # locations = [
-        # {'lat': 53.5461, 'lng': -113.4938},
-        # {'lat': 53.5400, 'lng': -113.5000},
-        # {'lat': 53.5500, 'lng': -113.4800}
-        # ]
-
-        # self.update_google_map(locations)
     def connection(self):
         comport = self.find_serial_port()
         if comport:
@@ -457,7 +462,6 @@ class MyApp(QWidget):
                                        Qt.TransformationMode.SmoothTransformation)
             self.icon_label.setPixmap(self.smaller_pixmap)
         else:
-            print('did not work')
             self.pixmap = QPixmap("red.png")
             self.smaller_pixmap = self.pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio,
                                        Qt.TransformationMode.SmoothTransformation)
@@ -470,20 +474,36 @@ class MyApp(QWidget):
     
     def start_button_clicked(self):
         self.start_button_pressed = True
+        self.start_time = time.time() - self.elapsed_time
         
     def stop_button_clicked(self):
         self.start_button_pressed = False
         self.stop_button_pressed = True
+        self.elapsed_time = time.time() - self.start_time
 
     def update_time_of_day(self):
         
         self.real_time_edit.setText(self.current_time_str)
         self.current_time_str = datetime.now().strftime("%I:%M:%S %p")
         comport = self.find_serial_port()
+        self.selected_text = self.device_combo.currentText()
+
 
 
         if self.start_button_pressed:
-            print('started')
+            if self.workbook_count == 0:
+                self.data_logger_excel()
+                self.workbook_count = 1
+                self.workbook_save_time = time.time()
+
+            self.start_timer = True
+            workbook_time_elapsed = int(time.time() - self.workbook_save_time)
+            current_elapsed = time.time() - self.start_time
+            total_seconds = int(current_elapsed)
+            hh, remainder = divmod(total_seconds, 3600)
+            mm, ss = divmod(remainder, 60)
+            self.last_line_box_time.setText(f"{hh:02d}:{mm:02d}:{ss:02d}")
+
             last_line = None
 
             while self.serial_start.in_waiting > 0:
@@ -494,57 +514,68 @@ class MyApp(QWidget):
             print(last_line)
         
             if last_line:
-                if 'Message:' in last_line:
+                if 'Message:' in last_line and self.selected_text == "Device 1":
                     lat_index = last_line.find("Lat")
                     lon_index = last_line.find("Lon")
                     alt_index = last_line.find("Alt")
                     angle_index = last_line.find("WindAngle")
                     Windspeed_index = last_line.find("WindSpeed")
 
-
+                    lat1 = last_line[lat_index+4:lon_index-1]
+                    lon1 = last_line[lon_index+4:alt_index-1]
+                    alt1 = last_line[alt_index+4:angle_index-1]
                     wind_angle = last_line[angle_index+10:Windspeed_index-1]
                     wind_speed = last_line[Windspeed_index+10:]
                     
-
-
-                    self.last_line_box_speed.setText(wind_speed)
-                    
+                    self.last_line_box_speed.setText(f'{wind_speed} m/s')
+                    self.data_logger.last_line_box_location.setText(f'lat: {lat1}, lon: {lon1}')
                     self.last_line_box_direcion.setText(f'{wind_angle}°')
-                    self.compass_widget.direction_update(float(wind_angle.strip()))
-                    #self.update_google_map(float(latitude_final),float(longitude_final))
-                    
-                    
-                # elif 'Longitude' in last_line:
-                #     latifinal_index = last_line.find(":")
-                #     plus_index = last_line.find("+")
-                #     dollar_index = last_line.find("$")
-                #     latitude_final = last_line[latifinal_index+1:plus_index-1]
-                #     longitude_final = last_line[dollar_index+1:]
-                #     self.update_google_map(float(latitude_final),float(longitude_final))    
-                # elif 'Altitude' in last_line:
-                #     alt_index = last_line.find(":")
-                #     alt = last_line[alt_index+1:]
-                #     self.last_line_box_altitude.setText(alt)
-                # elif 'Humidity' in last_line:
-                #     humidity_index = last_line.find("=")
-                #     humidity = last_line[humidity_index+1:]
-                #     self.last_line_box_time.setText(humidity)
-                # elif 'Wind Angle' in last_line:
-                #     print(last_line)
-                #     humidity_index = last_line.find(":")
-                #     humidity = last_line[humidity_index+1:]
-                #     self.compass_widget.direction_update(float(humidity))
-                #     self.last_line_box_direcion.setText(f'{humidity}°')
+                    self.last_line_box_altitude.setText(f'{alt1} m')
 
-        
-        # print(comport)
-        
+                    self.compass_widget.direction_update(float(wind_angle.strip()))
+                    self.update_google_map(float(lat1),float(lon1))
+
+                    lat_index_two = last_line.find("Lat2")
+                    lon_index_two = last_line.find("Lon2")
+                    alt_index_two = last_line.find("Alt2")
+                    angle_index_two = last_line.find("WindAngle2")
+                    Windspeed_index_two = last_line.find("WindSpeed2")
+
+                    lat2 = last_line[lat_index_two+5:lon_index_two-1]
+                    lon2 = last_line[lon_index_two+5:alt_index_two-1]
+                    alt2 = last_line[alt_index+5:angle_index-1]
+                    wind_angle_two = last_line[angle_index_two+11:Windspeed_index_two-1]
+                    wind_speed_two = last_line[Windspeed_index_two+11:]
+
+                    self.running_speed_average_one.append(wind_speed)
+                    self.running_speed_average_two.append(wind_speed_two)
+                    self.data_logger.last_line_box_timeavg.setText(f'{self.average_one} m/s')
+
+
+                    self.ws_device.append([wind_angle, wind_speed, alt1, lon1, lat1, wind_angle_two, wind_speed_two, alt2, lon2, lat2]) 
+
+                elif 'Message:' in last_line and self.selected_text == "Device 2":
+                    
+                    self.data_logger.last_line_box_location.setText(f'lat: {lat2}, lon: {lon2}')
+                    self.last_line_box_altitude.setText(f'{alt2} m')
+                    self.last_line_box_speed.setText(f'{wind_speed_two} m/s')
+                    self.last_line_box_direcion.setText(f'{wind_angle_two}°')
+
+                    self.data_logger.last_line_box_timeavg.setText(f'{self.average_two} m/s')
+
+                    self.compass_widget.direction_update(float(wind_speed_two.strip()))
+                    self.update_google_map(float(lat2),float(lon2))
+                    
+
+            if workbook_time_elapsed >= 300:
+                self.workbook.save(f"C:\WindSensor_DataLogger\{self.current_time_str}_data.xlsx")
+                self.workbook_count == 0
+                self.workbook_save_time = time.time()
 
         if comport == None:
             self.connection()
             self.count = 0
         else:
-            # print('connected :)')
             if self.count == 0:
                 self.pixmap = QPixmap("green_processed.jpg")
                 self.smaller_pixmap = self.pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio,
@@ -552,23 +583,11 @@ class MyApp(QWidget):
                 self.icon_label.setPixmap(self.smaller_pixmap)
                 self.count = 1
             else:
-
                 self.count = self.count + 1
-        
-        # if self.count == 1:
-        #     self.pixmap = QPixmap("green_processed.jpg")
-        #     self.smaller_pixmap = self.pixmap.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio,
-        #                                Qt.TransformationMode.SmoothTransformation)
-        #     self.icon_label.setPixmap(self.smaller_pixmap)
-        #     #self.connection()
 
         self.start_btn.clicked.connect(self.start_button_clicked)
         self.stop_btn.clicked.connect(self.stop_button_clicked)
     
-            
-        
-    
-
 def main():
     app = QApplication(sys.argv)
     window = MyApp()
