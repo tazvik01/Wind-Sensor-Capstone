@@ -4,6 +4,7 @@ import math
 import time
 import threading
 from openpyxl import Workbook
+import subprocess
 
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, 
@@ -24,7 +25,7 @@ from PyQt6.QtCore import QPointF, QRectF
 import random
 
 
-
+base_station_path = 'Basestation/Basestation.ino'
 
 class Datalogger(QWidget):
     def __init__(self):
@@ -165,9 +166,11 @@ class MyApp(QWidget):
     def __init__(self):
         super().__init__()
         self.compass_widget = CompassWidget()
-        self.data_logger = Datalogger()
         self.running_speed_average_one = []
         self.running_speed_average_two = []
+        self.average_one = 0
+        self.average_two = 0
+        self.data_logging_window = Datalogger()
         
         self.setWindowTitle("The Wind Sensor App")
         now = datetime.now()
@@ -176,12 +179,9 @@ class MyApp(QWidget):
         self.counter = 1
         folder_path = f"C:\\WindSensor_DataLogger"
         self.workbook_count = 0
-        self.selected_text = self.device_combo.currentText()
         if not os.path.exists(folder_path):
             os.mkdir(folder_path)
 
-        #self.serial_start = serial.Serial('COM9', 9600, timeout= 1)
-        
         main_layout = QHBoxLayout()
         self.setLayout(main_layout)
 
@@ -408,12 +408,12 @@ class MyApp(QWidget):
         
 
     def update_google_map(self, latitude: float, longitude: float):
-        if (latitude, longitude) != (self.prevlatitude, self.prevlongitude):
+        if (int(latitude), int(longitude)) != (self.prevlatitude, self.prevlongitude):
             js_code = f'updateMap({latitude}, {longitude});'
             self.web_view.page().runJavaScript(js_code)
 
-            self.prevlatitude = latitude
-            self.prevlongitude = longitude
+            self.prevlatitude = int(latitude)
+            self.prevlongitude = int(longitude)
             
 
     def find_serial_port(self):
@@ -469,7 +469,7 @@ class MyApp(QWidget):
 
 
     def more_button_functionality(self):
-        self.data_logging_window = Datalogger()
+        #self.data_logging_window = Datalogger()
         self.data_logging_window.show()
     
     def start_button_clicked(self):
@@ -514,7 +514,7 @@ class MyApp(QWidget):
             print(last_line)
         
             if last_line:
-                if 'Message:' in last_line and self.selected_text == "Device 1":
+                if 'Device' in last_line and self.selected_text == "Device 1":
                     lat_index = last_line.find("Lat")
                     lon_index = last_line.find("Lon")
                     alt_index = last_line.find("Alt")
@@ -528,12 +528,14 @@ class MyApp(QWidget):
                     wind_speed = last_line[Windspeed_index+10:]
                     
                     self.last_line_box_speed.setText(f'{wind_speed} m/s')
-                    self.data_logger.last_line_box_location.setText(f'lat: {lat1}, lon: {lon1}')
+                    self.data_logging_window.last_line_box_location.setText(f'lat: {lat1}, lon: {lon1}')
                     self.last_line_box_direcion.setText(f'{wind_angle}°')
                     self.last_line_box_altitude.setText(f'{alt1} m')
-
-                    self.compass_widget.direction_update(float(wind_angle.strip()))
                     self.update_google_map(float(lat1),float(lon1))
+
+                    if wind_angle.isnumeric:
+                        self.compass_widget.direction_update(float(wind_angle.strip()))
+                    
 
                     lat_index_two = last_line.find("Lat2")
                     lon_index_two = last_line.find("Lon2")
@@ -547,29 +549,34 @@ class MyApp(QWidget):
                     wind_angle_two = last_line[angle_index_two+11:Windspeed_index_two-1]
                     wind_speed_two = last_line[Windspeed_index_two+11:]
 
-                    self.running_speed_average_one.append(wind_speed)
-                    self.running_speed_average_two.append(wind_speed_two)
-                    self.data_logger.last_line_box_timeavg.setText(f'{self.average_one} m/s')
+                    if wind_speed.isnumeric:
+                        #self.compass_widget.direction_update(float(wind_angle.strip()))
+                        self.running_speed_average_one.append(float(wind_speed.strip()))
+                        #self.running_speed_average_two.append(float(wind_speed_two))
+                    self.data_logging_window.last_line_box_timeavg.setText(f'{self.average_one} m/s')
 
 
                     self.ws_device.append([wind_angle, wind_speed, alt1, lon1, lat1, wind_angle_two, wind_speed_two, alt2, lon2, lat2]) 
 
                 elif 'Message:' in last_line and self.selected_text == "Device 2":
                     
-                    self.data_logger.last_line_box_location.setText(f'lat: {lat2}, lon: {lon2}')
+                    self.data_logging_window.last_line_box_location.setText(f'lat: {lat2}, lon: {lon2}')
                     self.last_line_box_altitude.setText(f'{alt2} m')
                     self.last_line_box_speed.setText(f'{wind_speed_two} m/s')
                     self.last_line_box_direcion.setText(f'{wind_angle_two}°')
 
-                    self.data_logger.last_line_box_timeavg.setText(f'{self.average_two} m/s')
+                    self.data_logging_window.last_line_box_timeavg.setText(f'{self.average_two} m/s')
 
                     self.compass_widget.direction_update(float(wind_speed_two.strip()))
                     self.update_google_map(float(lat2),float(lon2))
+                
+                self.running_speed_average()
                     
-
-            if workbook_time_elapsed >= 300:
-                self.workbook.save(f"C:\WindSensor_DataLogger\{self.current_time_str}_data.xlsx")
-                self.workbook_count == 0
+            workbook_time = datetime.now().strftime("%I%M%S%p")
+            if workbook_time_elapsed >= 60:
+                self.workbook.save(f"C:\\WindSensor_DataLogger\\{workbook_time}data.xlsx")
+                
+                self.workbook_count = 0
                 self.workbook_save_time = time.time()
 
         if comport == None:

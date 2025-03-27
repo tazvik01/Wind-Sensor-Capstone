@@ -46,5 +46,8 @@ void loop() {
       Serial.print(": ");
       Serial.print(incoming);
     }
+
+    Serial.println();
+
   }
 }
