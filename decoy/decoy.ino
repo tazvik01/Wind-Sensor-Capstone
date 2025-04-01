@@ -3,10 +3,10 @@
 #include <Adafruit_GPS.h>
 #include <HardwareSerial.h>
 #include <Wire.h>
-#include <Adafruit_BME280.h>
+#include <Adafruit_BME680.h>
 #include <SoftwareSerial.h>
 
-Adafruit_BME280 bme;
+Adafruit_BME680 bme;
 #define SEALEVELPRESSURE_HPA (1013.25)
 //windsensor connection
 #define RX_PIN 22
@@ -32,16 +32,17 @@ String outMessage;
 byte msgCount = 0;
 String contents = "";
 //address of the current device
-byte localAddress = 0xBB;
+byte localAddress = 0x18;
 //adress of the device you want to send it to
 byte destination = 0xFF;
 
 void setup() {
   pinMode(ledPin, OUTPUT);
+  pinMode(14, OUTPUT);
   Serial.begin(9600);
   mySerial.begin(9600, SERIAL_8N1, 16, 17);
   GPS.begin(9600);
-  bme.begin(0x76);
+  bme.begin(0x77);
   gps_initialization();
   Serial.println("Initializing Lora..");
   LoRa.setPins(csPin, resetPin, irqPin);
@@ -84,6 +85,19 @@ void printCoordinates() {
 void loop() {
   digitalWrite(ledPin, HIGH);
   char c = GPS.read();
+
+  float lat = convertNMEADegMinToDecDeg(GPS.latitude, GPS.lat);
+  float lon = convertNMEADegMinToDecDeg(GPS.longitude, GPS.lon);
+
+  if (int(lat) == 0 and int(lon) == 0){
+    digitalWrite(14, (millis() / 500) & 1);
+
+  }else{
+    digitalWrite(14, HIGH);
+
+  }
+
+
 
   if (GPS.newNMEAreceived()) {
     if (GPS.parse(GPS.lastNMEA())) {

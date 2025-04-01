@@ -1,10 +1,10 @@
-import serial.tools.list_ports
+from geopy.geocoders import Nominatim
 
-ports = serial.tools.list_ports.comports()
+loc = Nominatim(user_agent="Geopy Library")
 
-for port in ports:
-    print(f"Port: {port.device}")
-    print(f"Description: {port.description}")
-    print(f"VID:PID = {port.vid}:{port.pid}")
-    print(f"HWID: {port.hwid}")
-    print("---------------------")
+getLoc = loc.geocode("İzmir")
+
+print(getLoc.address)
+
+print("Latitude = ", getLoc.latitude, "\n")
+print("Longitude = ", getLoc.longitude)

@@ -2,7 +2,7 @@ import subprocess
 import serial
 import time
 
-
+print('hi')
 ino_path = "C:\\Users\\tazvi\\Documents\\Capstone_UI\\Basestation\\Basestation.ino"
 
 board_type = 'esp32:esp32:esp32'

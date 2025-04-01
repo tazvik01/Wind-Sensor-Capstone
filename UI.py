@@ -23,6 +23,7 @@ import serial.tools.list_ports
 from PyQt6.QtGui import  QPainter, QPen
 from PyQt6.QtCore import QPointF, QRectF
 import random
+import math 
 
 
 base_station_path = 'Basestation/Basestation.ino'
@@ -245,7 +246,7 @@ class MyApp(QWidget):
             'speed_lbl': 'SPEED:',
             'direction_lbl': 'DIRECTION:',
             'modes_lbl': 'MODES:',
-            'health_lbl': 'HEALTH:',
+            'health_lbl': 'TEMPERATURE:',
             'altitude_lbl': 'ALTITUDE:', 
         }
 
@@ -336,7 +337,7 @@ class MyApp(QWidget):
             # elif val == "MODES:":
             #     modes_row.addWidget(label)
             #     modes_row.addWidget(self.modes_combo)
-            elif val == 'HEALTH:':
+            elif val == 'TEMPERATURE:':
                 health_row.addWidget(label)
                 health_row.addWidget(self.last_line_box_health)
             elif val == 'ALTITUDE:':
@@ -431,7 +432,7 @@ class MyApp(QWidget):
         self.workbook = Workbook()
         self.ws_device = self.workbook.active
         self.ws_device.title = "Data"
-        self.ws_device.append(["Wind Angle1", "Wind Speed1", "Altitude1", "longitude1", "latitude1", "Wind Angle2", "Wind Speed2", "Altitude2", "longitude2", "latitude2" ])
+        self.ws_device.append(["Wind Angle1 (degrees)", "Wind Speed1 (m/s)", "Altitude1 (m)", "longitude1", "latitude1", "Humidity (%)", "Pressure (Kpa)", "Altitude2 (m)", "longitude2", "latitude2", "Temparature (°C)" ])
 
     def start_serial_connection(self):
         com_port = self.find_serial_port()
@@ -451,6 +452,19 @@ class MyApp(QWidget):
         elif len(self.running_speed_average_one) >= 10:
             self.average_two= sum(self.running_speed_average_two)/len(self.running_speed_average_two)
             self.running_speed_average_two = []
+    # def compare_distance(self, lat1, lat2, lon1, lon2):
+    #     change_in_lon = lon2 - lon1
+    #     change_in_lat = lat2-lat1
+    #     radius_of_earth = 6371
+    #     a = (math.sin((change_in_lat)/2))**2 + math.cos(lat1) * math.cos(lat2) * (math.sin((change_in_lon)/2))**2 
+    #     d = 2*radius_of_earth*math.asin(math.sqrt(a))
+
+    #     if d>4:
+    #         self.last_line_box_health.setText('OUT OF RANGE')
+    #     else:
+    #         self.last_line_box_health.setText('IN RANGE')
+
+
 
 
     def connection(self):
@@ -514,66 +528,72 @@ class MyApp(QWidget):
             print(last_line)
         
             if last_line:
-                if 'Device' in last_line and self.selected_text == "Device 1":
-                    lat_index = last_line.find("Lat")
-                    lon_index = last_line.find("Lon")
-                    alt_index = last_line.find("Alt")
-                    angle_index = last_line.find("WindAngle")
-                    Windspeed_index = last_line.find("WindSpeed")
-
-                    lat1 = last_line[lat_index+4:lon_index-1]
-                    lon1 = last_line[lon_index+4:alt_index-1]
-                    alt1 = last_line[alt_index+4:angle_index-1]
-                    wind_angle = last_line[angle_index+10:Windspeed_index-1]
-                    wind_speed = last_line[Windspeed_index+10:]
-                    
-                    self.last_line_box_speed.setText(f'{wind_speed} m/s')
-                    self.data_logging_window.last_line_box_location.setText(f'lat: {lat1}, lon: {lon1}')
-                    self.last_line_box_direcion.setText(f'{wind_angle}°')
-                    self.last_line_box_altitude.setText(f'{alt1} m')
-                    self.update_google_map(float(lat1),float(lon1))
-
-                    if wind_angle.isnumeric:
-                        self.compass_widget.direction_update(float(wind_angle.strip()))
-                    
+                if 'Device' in last_line:
+                    lat_index = last_line.find("Lat1")
+                    lon_index = last_line.find("Lon1")
+                    alt_index = last_line.find("Alt1")
+                    angle_index = last_line.find("WindAngle1")
+                    Windspeed_index = last_line.find("WindSpeed1")
 
                     lat_index_two = last_line.find("Lat2")
                     lon_index_two = last_line.find("Lon2")
                     alt_index_two = last_line.find("Alt2")
-                    angle_index_two = last_line.find("WindAngle2")
-                    Windspeed_index_two = last_line.find("WindSpeed2")
+                    Temp_index = last_line.find("Temp")
+                    pressue_index = last_line.find("Pressure")
+                    humidity_index = last_line.find("Humidity")
 
-                    lat2 = last_line[lat_index_two+5:lon_index_two-1]
-                    lon2 = last_line[lon_index_two+5:alt_index_two-1]
-                    alt2 = last_line[alt_index+5:angle_index-1]
-                    wind_angle_two = last_line[angle_index_two+11:Windspeed_index_two-1]
-                    wind_speed_two = last_line[Windspeed_index_two+11:]
+                    if  lat_index_two != -1 and lon_index_two != -1 and alt_index_two != -1 and Temp_index != -1 and pressue_index != -1 and humidity_index != -1 and lat_index != -1 and lon_index != -1 and alt_index != -1 and angle_index != -1 and Windspeed_index !=-1 :
+                        lat1 = last_line[lat_index+5:lon_index-1]
+                        lon1 = last_line[lon_index+5:alt_index-1]
+                        alt1 = last_line[alt_index+5:angle_index-1]
+                        wind_angle = last_line[angle_index+11:Windspeed_index-1]
+                        wind_speed = last_line[Windspeed_index+11:Windspeed_index+16]
 
-                    if wind_speed.isnumeric:
-                        #self.compass_widget.direction_update(float(wind_angle.strip()))
-                        self.running_speed_average_one.append(float(wind_speed.strip()))
-                        #self.running_speed_average_two.append(float(wind_speed_two))
-                    self.data_logging_window.last_line_box_timeavg.setText(f'{self.average_one} m/s')
+                        lat2 = last_line[lat_index_two+5:lon_index_two-1]
+                        lon2 = last_line[lon_index_two+5:alt_index_two-1]
+                        alt2 = last_line[alt_index+5:angle_index-1]
+                        temp = last_line[Temp_index+5:pressue_index-1]
+                        Pressure = last_line[pressue_index+9:humidity_index-1]
+                        humidity = last_line[humidity_index+9:humidity_index+13]
 
-
-                    self.ws_device.append([wind_angle, wind_speed, alt1, lon1, lat1, wind_angle_two, wind_speed_two, alt2, lon2, lat2]) 
-
-                elif 'Message:' in last_line and self.selected_text == "Device 2":
+                        if  self.selected_text == "Device 1":
                     
-                    self.data_logging_window.last_line_box_location.setText(f'lat: {lat2}, lon: {lon2}')
-                    self.last_line_box_altitude.setText(f'{alt2} m')
-                    self.last_line_box_speed.setText(f'{wind_speed_two} m/s')
-                    self.last_line_box_direcion.setText(f'{wind_angle_two}°')
+                            self.last_line_box_speed.setText(f'{wind_speed} m/s')
+                            self.data_logging_window.last_line_box_location.setText(f'lat: {lat1}, lon: {lon1}')
+                            self.last_line_box_direcion.setText(f'{wind_angle}°')
+                            self.last_line_box_altitude.setText(f'{alt1} m')
 
-                    self.data_logging_window.last_line_box_timeavg.setText(f'{self.average_two} m/s')
+                            if lat1.isnumeric and lon1.isnumeric:
+                                self.update_google_map(float(lat1),float(lon1))
 
-                    self.compass_widget.direction_update(float(wind_speed_two.strip()))
-                    self.update_google_map(float(lat2),float(lon2))
+                            if wind_angle.isnumeric:
+                                self.compass_widget.direction_update(float(wind_angle.strip()))
+
+                            if wind_speed.isnumeric:
+                                self.running_speed_average_one.append(float(wind_speed.strip()))
+
+                            self.data_logging_window.last_line_box_timeavg.setText(f'{self.average_one} m/s')
+                            self.ws_device.append([wind_angle, wind_speed, alt1, lon1, lat1, humidity, Pressure, alt2, lon2, lat2, temp]) 
+        
+                    
+                        elif self.selected_text == "Device 2":
+
+                            self.data_logging_window.last_line_box_location.setText(f'lat: {lat2}, lon: {lon2}')
+                            self.last_line_box_altitude.setText(f'{alt2} m')
+                            self.last_line_box_speed.setText(f'{Pressure} kPa')
+                            self.last_line_box_direcion.setText(f'{humidity}%')
+                            self.last_line_box_health.setText(f'{temp}°C')
+
+                            if lat2.isnumeric and lon2.isnumeric:
+                                self.update_google_map(float(lat2),float(lon2))
+
+                        
+                        
                 
                 self.running_speed_average()
                     
             workbook_time = datetime.now().strftime("%I%M%S%p")
-            if workbook_time_elapsed >= 60:
+            if workbook_time_elapsed >= 10:
                 self.workbook.save(f"C:\\WindSensor_DataLogger\\{workbook_time}data.xlsx")
                 
                 self.workbook_count = 0

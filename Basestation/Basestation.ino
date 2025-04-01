@@ -20,6 +20,7 @@ void setup() {
 }
 
 void loop() {
+
   int packetSize = LoRa.parsePacket();
   if (packetSize > 0) {
     
@@ -34,6 +35,8 @@ void loop() {
       incoming += (char)LoRa.read();
     }
 
+   
+
     if (firstMessage) {
       Serial.print("Device 0x");
       Serial.print(sender, HEX);
@@ -45,9 +48,14 @@ void loop() {
       Serial.print(sender, HEX);
       Serial.print(": ");
       Serial.print(incoming);
+
+      Serial.println();
+      firstMessage = true;
+      
     }
 
-    Serial.println();
+    
 
   }
+
 }
