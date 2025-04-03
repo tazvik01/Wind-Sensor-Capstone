@@ -485,6 +485,14 @@ class MyApp(QWidget):
     def more_button_functionality(self):
         #self.data_logging_window = Datalogger()
         self.data_logging_window.show()
+
+    def is_valid_float(self, value):
+        try:
+            float(value.strip())
+            return True
+        except ValueError:
+            return False
+        
     
     def start_button_clicked(self):
         self.start_button_pressed = True
@@ -563,13 +571,13 @@ class MyApp(QWidget):
                             self.last_line_box_direcion.setText(f'{wind_angle}°')
                             self.last_line_box_altitude.setText(f'{alt1} m')
 
-                            if lat1.isnumeric and lon1.isnumeric:
+                            if self.is_valid_float(lat1) and self.is_valid_float(lon1):
                                 self.update_google_map(float(lat1),float(lon1))
 
-                            if wind_angle.isnumeric:
+                            if self.is_valid_float(wind_angle):
                                 self.compass_widget.direction_update(float(wind_angle.strip()))
 
-                            if wind_speed.isnumeric:
+                            if self.is_valid_float(wind_speed):
                                 self.running_speed_average_one.append(float(wind_speed.strip()))
 
                             self.data_logging_window.last_line_box_timeavg.setText(f'{self.average_one} m/s')
@@ -584,7 +592,7 @@ class MyApp(QWidget):
                             self.last_line_box_direcion.setText(f'{humidity}%')
                             self.last_line_box_health.setText(f'{temp}°C')
 
-                            if lat2.isnumeric and lon2.isnumeric:
+                            if self.is_valid_float(lat2) and self.is_valid_float(lon2):
                                 self.update_google_map(float(lat2),float(lon2))
 
                         

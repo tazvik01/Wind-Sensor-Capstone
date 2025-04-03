@@ -3,10 +3,10 @@
 #include <Adafruit_GPS.h>
 #include <HardwareSerial.h>
 #include <Wire.h>
-#include <Adafruit_BME680.h>
+#include <Adafruit_BME280.h>
 #include <SoftwareSerial.h>
 
-Adafruit_BME680 bme;
+Adafruit_BME280 bme;
 #define SEALEVELPRESSURE_HPA (1013.25)
 //windsensor connection
 #define RX_PIN 22
